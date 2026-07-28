@@ -96,7 +96,7 @@ export default function SearchPage() {
     try {
       const res = await fetch('/api/file/batch-download', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(() => { const t = localStorage.getItem('auth_token'); return t ? { Authorization: `Bearer ${t}` } : {} })() },
+        headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('auth_token') ? `Bearer ${localStorage.getItem('auth_token')}` : '' },
         body: JSON.stringify({ file_ids: Array.from(selectedIds) }),
       })
       if (!res.ok) throw new Error('Download failed')
@@ -281,26 +281,26 @@ export default function SearchPage() {
               {/* Result list */}
               <div className="space-y-3">
                 {viewMode === 'file' && fileGrouped.map(item => 
-                      <div key={hit.id}
+                      <div key={item.hit.id}
                         className={`p-4 bg-white dark:bg-gray-900 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                          selectedHit?.id === hit.id ? 'border-blue-400 dark:border-blue-500 shadow-sm' : 'border-gray-200 dark:border-gray-800'
+                          selectedHit?.id === item.hit.id ? 'border-blue-400 dark:border-blue-500 shadow-sm' : 'border-gray-200 dark:border-gray-800'
                         }`}
-                        onClick={() => showPreview(hit)}>
+                        onClick={() => showPreview(item.hit)}>
                         <div className="flex items-start gap-3">
-                          <button onClick={e => { e.stopPropagation(); toggleSelect(hit.id) }}
+                          <button onClick={e => { e.stopPropagation(); toggleSelect(item.hit.id) }}
                             className="mt-1 text-gray-400 hover:text-blue-600 shrink-0">
-                            {selectedIds.has(hit.id) ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
+                            {selectedIds.has(item.hit.id) ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
                           </button>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                              <span className="font-medium text-blue-700 dark:text-blue-400 truncate">{hit.filename}</span>
-                              <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">{hit.extension}</span>
-                              <span className="text-xs text-gray-400 ml-auto">{hit.modified?.split('T')[0]}</span>
+                              <span className="font-medium text-blue-700 dark:text-blue-400 truncate">{item.hit.filename}</span>
+                              <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">{item.hit.extension}</span>
+                              <span className="text-xs text-gray-400 ml-auto">{item.hit.modified?.split('T')[0]}</span>
                             </div>
                             <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
-                              <span className="truncate">{hit.path}</span>
-                              <span>{item.hit.size > 0 ? (item.hit.size / 1024).toFixed(0) + 'KB' : ''}</span>
+                              <span className="truncate">{item.hit.path}</span>
+                              <span>{item.item.hit.size > 0 ? (item.item.hit.size / 1024).toFixed(0) + 'KB' : ''}</span>
                               <span className="text-blue-600">{item.count} 处匹配</span>
                             </div>
                             {item.snippets.slice(0, 2).map((s, i) => (

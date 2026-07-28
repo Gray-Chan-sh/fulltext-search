@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Search, Filter, Download, Loader2, RefreshCw } from 'lucide-react'
-import { getIndexStatus } from '../api/client'
+import { Search, Download, Loader2, RefreshCw } from 'lucide-react'
 
 interface LogEntry {
   id: number

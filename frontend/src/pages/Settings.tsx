@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings, Globe, Clock, Scan, Palette, Save, Loader2, Shield, Cpu, Database, Lock, Key } from 'lucide-react'
+import { Settings, Globe, Clock, Scan, Palette, Save, Loader2, Cpu, Database, Lock, Key } from 'lucide-react'
 import { useToast } from '../components/Toast'
 
 export default function SettingsPage() {

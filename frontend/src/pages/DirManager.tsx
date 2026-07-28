@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type JSX as ReactJSX } from 'react'
 import { FolderOpen, Plus, Trash2, RefreshCw, Loader2, ChevronRight, ChevronDown, FileText, Play, CheckSquare, Square } from 'lucide-react'
 import { getDirs, addDir, deleteDir } from '../api/client'
 import type { DirConfig } from '../api/client'
@@ -324,7 +324,7 @@ export default function DirManager() {
                           })
                         }
 
-                        const renderTree = (node: TreeNode, depth: number, parentKey: string): JSX.Element[] => {
+                        const renderTree = (node: TreeNode, depth: number, parentKey: string): ReactJSX.Element[] => {
                           const entries = Object.entries(node)
                           entries.sort(([a], [b]) => {
                             const aIsDir = Object.keys(node[a].subdirs).length > 0 || node[a].files.length === 0
@@ -411,7 +411,7 @@ export default function DirManager() {
                             topLevel[parts[0]].files.push(f)
                           }
                         }
-                        return renderTree(topLevel, 0)
+                         return renderTree(topLevel, 0, '')
                       })()}
                     </div>
                   </>

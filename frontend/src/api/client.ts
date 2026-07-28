@@ -53,6 +53,8 @@ export interface IndexStatus {
   progress_percent: number
   last_full_scan: string
   next_scheduled_scan: string
+  processing_file: string
+  processing_progress: string
 }
 
 const BASE = '/api'
