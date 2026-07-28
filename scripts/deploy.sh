@@ -65,11 +65,15 @@ install_docker() {
 # 准备目录和配置
 setup_dirs() {
     local base_dir="${1:-$(pwd)}"
+    base_dir="$(cd "$base_dir" && pwd)"  # resolve to absolute path
     mkdir -p "$base_dir"/data/{docs,app_data,index_data}
 
-    # 如果当前目录有 docker-compose.yml，复制过去
-    if [ -f "docker-compose.yml" ] && [ "$(pwd)" != "$base_dir" ]; then
-        cp docker-compose.yml "$base_dir/"
+    # 如果脚本目录和 base_dir 不同，复制 docker-compose.yml
+    local script_dir="$(cd "$(dirname "$0")/.." && pwd)"
+    if [ "$script_dir" != "$base_dir" ] && [ -f "$script_dir/docker-compose.yml" ]; then
+        cp "$script_dir/docker-compose.yml" "$base_dir/"
+    elif [ ! -f "$base_dir/docker-compose.yml" ]; then
+        cd "$script_dir" && cp docker-compose.yml "$base_dir/"
     fi
 
     cd "$base_dir"
@@ -196,6 +200,7 @@ main() {
 
     # 确定安装目录（默认当前目录）
     INSTALL_DIR="${1:-$(pwd)}"
+    INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd)"
 
     install_docker
     setup_dirs "$INSTALL_DIR"
