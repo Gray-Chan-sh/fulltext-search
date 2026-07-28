@@ -8,6 +8,7 @@ set -e
 #   ./scripts/deploy.sh                       # 部署到当前目录
 #   DATA_DIR=/mnt/docs ./scripts/deploy.sh    # 自定义资料目录
 #   EXTRA_DIRS=/mnt/books,/mnt/photos ./scripts/deploy.sh  # 多个目录
+#   支持 macOS / Linux / Windows (Git Bash)
 # ============================================================
 
 RED='\033[0;31m'
@@ -21,13 +22,30 @@ err()  { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 # 检测操作系统
 detect_os() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-        OS_VERSION=$VERSION_ID
-    else
-        err "无法检测操作系统，仅支持 Ubuntu/Debian/CentOS/Rocky Linux"
-    fi
+    case "$(uname -s)" in
+        Darwin)
+            OS="macos"
+            OS_VERSION="$(sw_vers -productVersion 2>/dev/null || echo "unknown")"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            OS="windows"
+            OS_VERSION="$(uname -s)"
+            ;;
+        Linux)
+            if [ -f /etc/os-release ]; then
+                . /etc/os-release
+                OS=$ID
+                OS_VERSION=$VERSION_ID
+            else
+                OS="linux"
+                OS_VERSION="unknown"
+            fi
+            ;;
+        *)
+            OS="unknown"
+            OS_VERSION="$(uname -s)"
+            ;;
+    esac
     log "检测到系统: $OS $OS_VERSION"
 }
 
@@ -38,7 +56,18 @@ install_docker() {
         return
     fi
     warn "Docker 未安装，正在安装..."
+
     case $OS in
+        macos)
+            warn "macOS 请手动安装 Docker Desktop: https://www.docker.com/products/docker-desktop/"
+            warn "安装后重新运行此脚本"
+            exit 1
+            ;;
+        windows)
+            warn "Windows 请手动安装 Docker Desktop: https://www.docker.com/products/docker-desktop/"
+            warn "安装后重新运行此脚本"
+            exit 1
+            ;;
         ubuntu|debian)
             apt-get update -qq
             apt-get install -y -qq ca-certificates curl
@@ -48,17 +77,18 @@ install_docker() {
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$OS $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
             apt-get update -qq
             apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
+            systemctl enable --now docker
             ;;
         centos|rocky|rhel)
             yum install -y yum-utils
             yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+            systemctl enable --now docker
             ;;
         *)
-            err "不支持的 Linux 发行版: $OS"
+            err "不支持的平台: $OS"
             ;;
     esac
-    systemctl enable --now docker
     log "Docker 安装完成"
 }
 
