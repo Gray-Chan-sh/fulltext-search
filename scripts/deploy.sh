@@ -119,11 +119,11 @@ COMPOSE
         log "docker-compose.yml 已创建"
     fi
 
-    # 复制 backend 和 frontend（如果是源码目录）
-    local src_dir="$(dirname "$0")/.."
-    if [ -d "$src_dir/backend" ]; then
+    # 复制 backend 和 frontend（如果是源码目录，且与 base_dir 不同）
+    local src_dir="$(cd "$(dirname "$0")/.." && pwd)"
+    if [ -d "$src_dir/backend" ] && [ "$src_dir" != "$(pwd)" ]; then
         log "从 $src_dir 复制源码..."
-        cp -r "$src_dir/backend" "$src_dir/frontend" "$src_dir/" 2>/dev/null || true
+        cp -r "$src_dir/backend" "$src_dir/frontend" . 2>/dev/null || true
     fi
 }
 
