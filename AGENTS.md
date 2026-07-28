@@ -128,6 +128,12 @@ rsync -avz ./index_data/ user@nas:/path/to/index_data/
 | PUT | /api/settings | Save settings |
 | GET | /api/search/export?q= | Export results CSV |
 | GET | /api/history | Search history |
+| POST | /api/auth/login | Login |
+| POST | /api/auth/logout | Logout |
+| GET | /api/auth/check | Check auth status |
+| GET | /api/files/duplicates | Duplicate files |
+| GET | /api/files/recent | Recent activity |
+| GET | /api/files/ocr-report | OCR quality report |
 
 ## Key design decisions
 
@@ -163,6 +169,8 @@ rsync -avz ./index_data/ user@nas:/path/to/index_data/
   (amd64 Docker) and migrated to NAS via rsync
 - **Migration**: copy `app_data/` (settings + SQLite) and `index_data/` (Tantivy)
 - **Settings persistence**: stored in `/data/app/settings.json`, Docker volume
+- **Read-only data dirs** — files are mounted `:ro`, all management is metadata-only
+  (tags, notes, duplicates, activity tracking — no disk file modification)
 
 ## When things break
 
