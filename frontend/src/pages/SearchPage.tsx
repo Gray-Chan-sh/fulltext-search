@@ -300,7 +300,7 @@ export default function SearchPage() {
                             </div>
                             <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
                               <span className="truncate">{item.hit.path}</span>
-                              <span>{item.item.hit.size > 0 ? (item.item.hit.size / 1024).toFixed(0) + 'KB' : ''}</span>
+                              <span>{item.hit.size > 0 ? (item.hit.size / 1024).toFixed(0) + 'KB' : ''}</span>
                               <span className="text-blue-600">{item.count} 处匹配</span>
                             </div>
                             {item.snippets.slice(0, 2).map((s, i) => (
