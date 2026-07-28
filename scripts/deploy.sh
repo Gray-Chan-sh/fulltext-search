@@ -5,9 +5,10 @@ set -e
 # FullText Search — 一键部署脚本
 # 支持 Ubuntu/Debian/CentOS/Rocky Linux
 # 用法:
-#   curl -fsSL https://raw.githubusercontent.com/xxx/fulltext-search/main/scripts/deploy.sh | bash
-#   或
-#   ./scripts/deploy.sh
+#   ./scripts/deploy.sh                    # 默认部署到 /opt/fulltext-search
+#   DATA_DIR=/mnt/docs ./scripts/deploy.sh # 自定义资料目录
+#   EXTRA_DIRS=/mnt/books,/mnt/photos ./scripts/deploy.sh  # 多个目录
+#   PORT=9090 ./scripts/deploy.sh          # 自定义端口
 # ============================================================
 
 RED='\033[0;31m'
@@ -77,7 +78,17 @@ setup_dirs() {
 
     # 创建 docker-compose.yml（如果不存在）
     if [ ! -f docker-compose.yml ]; then
-        cat > docker-compose.yml << 'COMPOSE'
+        # Build extra volumes line from EXTRA_DIRS
+        extra_volumes=""
+        if [ -n "${EXTRA_DIRS}" ]; then
+            IFS=',' read -ra dirs <<< "${EXTRA_DIRS}"
+            for dir in "${dirs[@]}"; do
+                dir=$(echo "$dir" | xargs)  # trim
+                name=$(basename "$dir")
+                extra_volumes="$extra_volumes\n      - ${dir}:/data/${name}:ro"
+            done
+        fi
+        cat > docker-compose.yml << COMPOSE
 services:
   fulltext-search:
     image: fulltext-search:latest
@@ -88,7 +99,7 @@ services:
     ports:
       - "${PORT:-8080}:8000"
     volumes:
-      - ${DATA_DIR:-./data/docs}:/data/docs:ro
+      - ${DATA_DIR:-./data/docs}:/data/docs:ro$(echo -e "$extra_volumes")
       - index_data:/data/index
       - app_data:/data/app
     environment:
