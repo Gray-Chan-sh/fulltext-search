@@ -5,10 +5,9 @@ set -e
 # FullText Search — 一键部署脚本
 # 支持 Ubuntu/Debian/CentOS/Rocky Linux
 # 用法:
-#   ./scripts/deploy.sh                    # 默认部署到 /opt/fulltext-search
-#   DATA_DIR=/mnt/docs ./scripts/deploy.sh # 自定义资料目录
+#   ./scripts/deploy.sh                       # 部署到当前目录
+#   DATA_DIR=/mnt/docs ./scripts/deploy.sh    # 自定义资料目录
 #   EXTRA_DIRS=/mnt/books,/mnt/photos ./scripts/deploy.sh  # 多个目录
-#   PORT=9090 ./scripts/deploy.sh          # 自定义端口
 # ============================================================
 
 RED='\033[0;31m'
@@ -65,11 +64,11 @@ install_docker() {
 
 # 准备目录和配置
 setup_dirs() {
-    local base_dir="${1:-/opt/fulltext-search}"
-    mkdir -p "$base_dir"/{data/docs,app_data,index_data}
+    local base_dir="${1:-$(pwd)}"
+    mkdir -p "$base_dir"/data/{docs,app_data,index_data}
 
     # 如果当前目录有 docker-compose.yml，复制过去
-    if [ -f "docker-compose.yml" ]; then
+    if [ -f "docker-compose.yml" ] && [ "$(pwd)" != "$base_dir" ]; then
         cp docker-compose.yml "$base_dir/"
     fi
 
@@ -100,8 +99,8 @@ services:
       - "${PORT:-8080}:8000"
     volumes:
       - ${DATA_DIR:-./data/docs}:/data/docs:ro$(echo -e "$extra_volumes")
-      - index_data:/data/index
-      - app_data:/data/app
+      - ./data/index_data:/data/index
+      - ./data/app_data:/data/app
     environment:
       - INDEX_DIR=/data/index
       - DATA_DIR=/data/app
@@ -111,10 +110,6 @@ services:
     restart: unless-stopped
     mem_limit: 4g
     mem_reservation: 1g
-
-volumes:
-  index_data:
-  app_data:
 COMPOSE
         log "docker-compose.yml 已创建"
     fi
@@ -127,21 +122,18 @@ COMPOSE
     fi
 }
 
-# 下载源码（如果不在源码目录）
-download_source() {
+# 检查源码是否存在
+check_source() {
     local target_dir="$1"
-    # 如果有 docker-compose.yml 且已有镜像，跳过源码
-    if [ -f "$target_dir/docker-compose.yml" ]; then
-        if [ "${SKIP_BUILD:-0}" = "1" ] || docker image inspect fulltext-search >/dev/null 2>&1; then
-            log "使用现有镜像，跳过源码检查"
-            return 0
-        fi
-    fi
     if [ -f "$target_dir/backend/Dockerfile" ] && [ -f "$target_dir/docker-compose.yml" ]; then
         return 0
     fi
-    warn "未找到源码，请先 git clone 或下载到 $target_dir"
-    warn "  git clone https://github.com/Gray-Chan-sh/fulltext-search.git $target_dir"
+    # 如果有 docker-compose.yml 且已有镜像，也可以跳过源码
+    if [ -f "$target_dir/docker-compose.yml" ] && docker image inspect fulltext-search >/dev/null 2>&1; then
+        log "使用现有镜像"
+        return 0
+    fi
+    warn "请在项目根目录执行此脚本"
     exit 1
 }
 
@@ -174,8 +166,8 @@ build_and_run() {
     echo ""
     echo "  数据目录:"
     echo "    $1/data/docs/     — 放入需要索引的文档"
-    echo "    $1/app_data/      — 索引数据 + 数据库"
-    echo "    $1/index_data/    — Tantivy 索引"
+    echo "    $1/data/app_data/  — 索引数据 + 数据库"
+    echo "    $1/data/index_data/— Tantivy 索引"
     echo ""
 }
 
@@ -194,15 +186,12 @@ main() {
 
     detect_os
 
-    # 确定安装目录
-    INSTALL_DIR="${1:-/opt/fulltext-search}"
-    if [ "$INSTALL_DIR" = "." ]; then
-        INSTALL_DIR="$(pwd)"
-    fi
+    # 确定安装目录（默认当前目录）
+    INSTALL_DIR="${1:-$(pwd)}"
 
     install_docker
     setup_dirs "$INSTALL_DIR"
-    download_source "$INSTALL_DIR"
+    check_source "$INSTALL_DIR"
     build_and_run "$INSTALL_DIR"
 }
 
