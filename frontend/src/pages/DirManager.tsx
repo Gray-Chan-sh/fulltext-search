@@ -31,6 +31,13 @@ export default function DirManager() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set())
   const [scanProgress, setScanProgress] = useState<{ status: string; processed: number; total: number; file: string; progress: string } | null>(null)
+  const [duplicates, setDuplicates] = useState<Array<{ md5: string; size: number; files: string[]; count: number }>>([])
+  const [recentIndexed, setRecentIndexed] = useState<Array<{ path: string; updated_at: number }>>([])
+  const [failedFiles, setFailedFiles] = useState<Array<{ path: string; error_msg: string }>>([])
+  const [ocrReport, setOcrReport] = useState<{ low_text_files: Array<{ path: string; char_count: number; ocr_duration_ms: number }>; stats: any } | null>(null)
+  const [showDuplicates, setShowDuplicates] = useState(false)
+  const [showRecent, setShowRecent] = useState(false)
+  const [showOcrReport, setShowOcrReport] = useState(false)
 
   const loadDirs = async () => {
     setLoading(true)
@@ -44,7 +51,7 @@ export default function DirManager() {
     }
   }
 
-  useEffect(() => { loadDirs() }, [])
+useEffect(() => { loadDirs() }, [])
 
   useEffect(() => {
     const poll = async () => {
@@ -60,9 +67,19 @@ export default function DirManager() {
         })
       } catch {}
     }
-    poll() // immediate
+    poll()
     const interval = setInterval(poll, 3000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Load management data
+  useEffect(() => {
+    fetch('/api/files/duplicates').then(r => r.json()).then(d => setDuplicates(d.duplicates || [])).catch(() => {})
+    fetch('/api/files/recent').then(r => r.json()).then(d => {
+      setRecentIndexed(d.recently_indexed || [])
+      setFailedFiles(d.failed || [])
+    }).catch(() => {})
+    fetch('/api/files/ocr-report').then(r => r.json()).then(d => setOcrReport(d)).catch(() => {})
   }, [])
 
   const toggleDir = async (dirId: string) => {
@@ -420,6 +437,90 @@ export default function DirManager() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {/* Duplicates Panel */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <button onClick={() => setShowDuplicates(!showDuplicates)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <span>📋 重复文件 ({duplicates.length})</span>
+            <span>{showDuplicates ? '▲' : '▼'}</span>
+          </button>
+          {showDuplicates && (
+            <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+              {duplicates.length === 0 && <div className="px-4 py-6 text-sm text-gray-400 text-center">暂无重复文件</div>}
+              {duplicates.map((g, i) => (
+                <div key={i} className="px-4 py-2.5 text-sm">
+                  <div className="text-xs text-gray-400 mb-1">{(g.size / 1024).toFixed(0)}KB — {g.count} 个副本</div>
+                  {g.files.map((f, j) => (
+                    <div key={j} className="text-gray-700 dark:text-gray-300 truncate font-mono text-xs">{f}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity Panel */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <button onClick={() => setShowRecent(!showRecent)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <span>🕐 最近动态</span>
+            <span>{showRecent ? '▲' : '▼'}</span>
+          </button>
+          {showRecent && (
+            <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+              {recentIndexed.length === 0 && <div className="px-4 py-6 text-sm text-gray-400 text-center">暂无动态</div>}
+              {recentIndexed.slice(0, 10).map((f, i) => (
+                <div key={i} className="px-4 py-2 text-sm flex items-center gap-2">
+                  <span className="text-green-500">✅</span>
+                  <span className="flex-1 truncate">{f.path.split('/').pop()}</span>
+                  <span className="text-xs text-gray-400">{new Date(f.updated_at * 1000).toLocaleDateString('zh-CN')}</span>
+                </div>
+              ))}
+              {failedFiles.length > 0 && <div className="px-4 py-1.5 text-xs text-gray-400 bg-red-50 dark:bg-red-900/10">失败:</div>}
+              {failedFiles.slice(0, 5).map((f, i) => (
+                <div key={i} className="px-4 py-2 text-sm flex items-center gap-2">
+                  <span className="text-red-500">❌</span>
+                  <span className="flex-1 truncate">{f.path.split('/').pop()}</span>
+                  <span className="text-xs text-red-400 truncate max-w-[150px]" title={f.error_msg}>{f.error_msg}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* OCR Report Panel */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <button onClick={() => setShowOcrReport(!showOcrReport)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <span>🔍 OCR 质量报告</span>
+            <span>{showOcrReport ? '▲' : '▼'}</span>
+          </button>
+          {showOcrReport && ocrReport && (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <div className="px-4 py-2.5 text-sm text-gray-500 flex gap-4">
+                <span>已 OCR: <strong className="text-gray-900">{ocrReport.stats?.total_ocr || 0}</strong></span>
+                <span>总字符: <strong className="text-gray-900">{ocrReport.stats?.total_chars || 0}</strong></span>
+                <span>平均耗时: <strong className="text-gray-900">{ocrReport.stats?.avg_duration_ms ? Math.round(ocrReport.stats.avg_duration_ms) + 'ms' : '-'}</strong></span>
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {(!ocrReport.low_text_files || ocrReport.low_text_files.length === 0) && (
+                  <div className="px-4 py-6 text-sm text-gray-400 text-center">暂无数据</div>
+                )}
+                {(ocrReport.low_text_files || []).slice(0, 20).map((f, i) => (
+                  <div key={i} className="px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                    <span className="text-amber-500">⚠️</span>
+                    <span className="flex-1 truncate">{f.path.split('/').pop()}</span>
+                    <span className="text-xs text-gray-400">{f.char_count} 字符</span>
+                    <span className="text-xs text-gray-400">{f.ocr_duration_ms}ms</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <ConfirmDialog

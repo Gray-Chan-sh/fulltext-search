@@ -100,7 +100,7 @@ app.add_middleware(
 )
 
 # API routes
-from app.routes import search, dirs, index, file, export, settings as settings_route, logs, auth
+from app.routes import search, dirs, index, file, export, settings as settings_route, logs, auth, files as files_route
 from app.routes.auth import _validate_token
 
 
@@ -134,6 +134,7 @@ app.include_router(export.router)
 app.include_router(settings_route.router)
 app.include_router(logs.router)
 app.include_router(auth.router)
+app.include_router(files_route.router)
 
 
 # Static files for built frontend
