@@ -179,6 +179,14 @@ main() {
     echo "========================================"
     echo ""
 
+    # 如果当前目录有 .env，加载环境变量
+    if [ -f .env ]; then
+        log "加载 .env 配置..."
+        set -a
+        source .env
+        set +a
+    fi
+
     # 如果以 root 运行，建议使用普通用户
     if [ "$(id -u)" = "0" ]; then
         warn "建议使用普通用户运行（当前为 root）"
