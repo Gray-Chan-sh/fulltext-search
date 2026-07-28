@@ -119,19 +119,31 @@ COMPOSE
 # 下载源码（如果不在源码目录）
 download_source() {
     local target_dir="$1"
+    # 如果有 docker-compose.yml 且已有镜像，跳过源码
+    if [ -f "$target_dir/docker-compose.yml" ]; then
+        if [ "${SKIP_BUILD:-0}" = "1" ] || docker image inspect fulltext-search >/dev/null 2>&1; then
+            log "使用现有镜像，跳过源码检查"
+            return 0
+        fi
+    fi
     if [ -f "$target_dir/backend/Dockerfile" ] && [ -f "$target_dir/docker-compose.yml" ]; then
         return 0
     fi
     warn "未找到源码，请先 git clone 或下载到 $target_dir"
-    warn "  git clone https://github.com/xxx/fulltext-search.git $target_dir"
+    warn "  git clone https://github.com/Gray-Chan-sh/fulltext-search.git $target_dir"
     exit 1
 }
 
 # 构建并启动
 build_and_run() {
     cd "$1"
-    log "构建 Docker 镜像..."
-    docker compose build
+
+    if [ "${SKIP_BUILD:-0}" != "1" ]; then
+        log "构建 Docker 镜像..."
+        docker compose build
+    else
+        log "跳过构建，使用现有镜像..."
+    fi
 
     log "启动服务..."
     docker compose up -d
