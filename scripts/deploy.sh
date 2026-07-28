@@ -98,6 +98,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        - REGISTRY=${REGISTRY:-}
     platform: linux/amd64
     ports:
       - "${PORT:-8080}:8000"
@@ -147,7 +149,11 @@ build_and_run() {
 
     if [ "${SKIP_BUILD:-0}" != "1" ]; then
         log "构建 Docker 镜像..."
-        docker compose build
+        if [ -n "${REGISTRY}" ]; then
+            docker compose build --build-arg "REGISTRY=${REGISTRY}"
+        else
+            docker compose build
+        fi
     else
         log "跳过构建，使用现有镜像..."
     fi
