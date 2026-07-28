@@ -1,0 +1,25 @@
+services:
+  fulltext-search:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    platform: linux/amd64
+    ports:
+      - "${PORT:-8080}:8000"
+    volumes:
+      - ${DATA_DIR:-./data/docs}:/data/docs:ro
+      - index_data:/data/index
+      - app_data:/data/app
+    environment:
+      - INDEX_DIR=/data/index
+      - DATA_DIR=/data/app
+      - OCR_LANG=${OCR_LANG:-ch}
+      - SCHEDULED_SCAN_TIME=${SCHEDULED_SCAN_TIME:-00:00}
+      - OCR_CONCURRENT=${OCR_CONCURRENT:-2}
+    restart: unless-stopped
+    mem_limit: 4g
+    mem_reservation: 1g
+
+volumes:
+  index_data:
+  app_data:

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+dist/
+build/
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+index_data/
+app_data/
+
+# Test data (not real docs)
+test/
+data/docs/*.pdf
+data/docs/*.docx
+data/docs/*.epub
+!data/docs/.gitkeep
+
+# Env
+.env
+.env.local
+
+# OMO
+.omo/

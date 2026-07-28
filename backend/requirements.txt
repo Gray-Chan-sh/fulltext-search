@@ -1,0 +1,21 @@
+# FullText Search Backend
+# Install PaddlePaddle separately:
+#   pip install paddlepaddle==3.2.1 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic-settings>=2.6
+tantivy>=0.22
+opencv-python-headless>=4.10
+PyMuPDF>=1.25
+python-docx>=1.1
+openpyxl>=3.1
+python-pptx>=1.0
+watchdog>=6.0
+apscheduler>=3.10
+aiofiles>=24.1
+python-multipart>=0.0.18
+jieba>=0.42
+pytesseract>=0.3
+paddleocr
+onnxruntime

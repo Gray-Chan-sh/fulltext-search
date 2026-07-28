@@ -1,0 +1,49 @@
+# Development compose with hot-reload (source code volume mount)
+# Usage: docker compose -f docker-compose.dev.yml up --build
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: backend
+    platform: linux/amd64
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Source code mount for hot-reload
+      - ./backend:/app
+      # Test data (read-only)
+      - ${DATA_DIR_1:-./data/docs}:/data/docs:ro
+      # Persisted index + app data
+      - index_data:/data/index
+      - app_data:/data/app
+    environment:
+      - INDEX_DIR=/data/index
+      - DATA_DIR=/data/app
+      - OCR_LANG=${OCR_LANG:-ch}
+      - SCHEDULED_SCAN_TIME=${SCHEDULED_SCAN_TIME:-00:00}
+      - OCR_CONCURRENT=${OCR_CONCURRENT:-2}
+      - PYTHONDONTWRITEBYTECODE=1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:20-slim
+    working_dir: /app
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      # node_modules is inside container, not mounted from host
+      - /app/node_modules
+    environment:
+      - VITE_PROXY_TARGET=http://backend:8000
+      - NODE_ENV=development
+    command: >
+      sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      - backend
+
+volumes:
+  index_data:
+  app_data:
