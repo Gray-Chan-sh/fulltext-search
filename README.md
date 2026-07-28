@@ -43,8 +43,8 @@ docker buildx build --platform linux/amd64 -t fulltext-search .
 ### 使用 Docker CLI 运行
 
 ```bash
-# 准备资料目录
-mkdir -p ./data/docs ./app_data ./index_data
+# 准备目录
+mkdir -p ./data/{docs,app_data,index_data}
 # 把需要索引的文档放入 ./data/docs/
 
 # 启动容器
@@ -52,8 +52,8 @@ docker run -d \
   --name fulltext-search \
   -p 8080:8000 \
   -v $(pwd)/data/docs:/data/docs:ro \
-  -v $(pwd)/app_data:/data/app \
-  -v $(pwd)/index_data:/data/index \
+  -v $(pwd)/data/app_data:/data/app \
+  -v $(pwd)/data/index_data:/data/index \
   -e OCR_LANG=ch \
   -e OCR_CONCURRENT=2 \
   -e SCHEDULED_SCAN_TIME=00:00 \
@@ -118,8 +118,8 @@ services:
       - "${PORT:-8080}:8000"
     volumes:
       - ${DATA_DIR:-./data/docs}:/data/docs:ro
-      - index_data:/data/index
-      - app_data:/data/app
+      - ./data/index_data:/data/index
+      - ./data/app_data:/data/app
 ```
 
 ### 环境变量
@@ -131,22 +131,29 @@ services:
 | `OCR_LANG` | `ch` | OCR 语言：ch / en / japan / korean |
 | `SCHEDULED_SCAN_TIME` | `00:00` | 每日定时扫描时间 |
 | `OCR_CONCURRENT` | `2` | OCR 并发数，OOM 时自动降级 |
-| `INDEX_DIR` | `/data/index` | Tantivy 索引存储路径（不要改） |
-| `DATA_DIR` | `/data/app` | SQLite 数据库和设置存储路径（不要改） |
+
+容器内环境变量（无需修改）：
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `INDEX_DIR` | `/data/index` | Tantivy 索引存储路径 |
+| `DATA_DIR` | `/data/app` | SQLite 数据库和设置存储路径 |
 
 ### 数据持久化
 
-```yaml
-volumes:
-  index_data:      # Tantivy 全文索引
-  app_data:        # SQLite 数据库 + settings.json + 备份
+数据存储在 `data/` 目录下，通过 bind mount 挂载到容器：
+
+```
+data/
+├── docs/          → /data/docs  (只读，放文档)
+├── app_data/      → /data/app   (SQLite + 设置)
+└── index_data/    → /data/index (Tantivy 索引)
 ```
 
-所有索引数据存储在 Docker volumes 中，容器重启或重建不会丢失。迁移时复制这两个 volume 的数据即可：
+容器重启或重建不会丢失数据。迁移时复制整个 `data/` 目录即可：
 
 ```bash
-docker run --rm -v app_data:/from alpine tar czf - -C /from . > app_data.tar.gz
-docker run --rm -v index_data:/from alpine tar czf - -C /from . > index_data.tar.gz
+rsync -avz ./data/ user@nas:/path/to/fulltext-search/data/
 ```
 
 ### 内存限制
@@ -206,11 +213,14 @@ docker compose build --build-arg REGISTRY=mirror.example.com/library/
 ```bash
 # 在 Mac 上构建并索引
 docker buildx build --platform linux/amd64 -t fulltext-search .
-docker run -v /本地/资料:/data/docs:ro -v app_data:/data/app -v index_data:/data/index fulltext-search
+docker run -d \
+  -v /本地/资料:/data/docs:ro \
+  -v $(pwd)/data/app_data:/data/app \
+  -v $(pwd)/data/index_data:/data/index \
+  fulltext-search
 
-# 迁移数据
-rsync -avz ./app_data/ user@nas:/path/to/app_data/
-rsync -avz ./index_data/ user@nas:/path/to/index_data/
+# 迁移数据（整个 data/ 目录）
+rsync -avz ./data/ user@nas:/path/to/fulltext-search/data/
 
 # 在 NAS 上启动
 docker compose up -d
