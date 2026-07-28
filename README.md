@@ -19,7 +19,18 @@ Docker 部署的全文搜索服务，支持 OCR，适合在 NAS 上索引和管�
 ## 快速开始
 
 ```bash
-# 构建并启动
+# 克隆
+git clone https://github.com/Gray-Chan-sh/fulltext-search.git
+cd fulltext-search
+
+# (可选) 配置环境变量
+cp .env.example .env
+# 编辑 .env 修改 DATA_DIR、PORT 等
+
+# 一键部署
+./scripts/deploy.sh
+
+# 或手动构建
 docker compose up --build
 
 # 访问
