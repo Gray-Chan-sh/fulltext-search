@@ -24,7 +24,84 @@ docker compose up --build
 # 默认密码: admin
 ```
 
-## Docker Compose 配置说明
+## Docker 镜像使用
+
+### 从源码构建
+
+```bash
+# 克隆仓库
+git clone https://github.com/Gray-Chan-sh/fulltext-search.git
+cd fulltext-search
+
+# 构建镜像（amd64，适用于 NAS/服务器）
+docker buildx build --platform linux/amd64 -t fulltext-search .
+```
+
+### 使用 Docker CLI 运行
+
+```bash
+# 准备资料目录
+mkdir -p ./data/docs ./app_data ./index_data
+# 把需要索引的文档放入 ./data/docs/
+
+# 启动容器
+docker run -d \
+  --name fulltext-search \
+  -p 8080:8000 \
+  -v $(pwd)/data/docs:/data/docs:ro \
+  -v $(pwd)/app_data:/data/app \
+  -v $(pwd)/index_data:/data/index \
+  -e OCR_LANG=ch \
+  -e OCR_CONCURRENT=2 \
+  -e SCHEDULED_SCAN_TIME=00:00 \
+  --memory=4g \
+  fulltext-search
+```
+
+### 使用 docker-compose（推荐）
+
+```bash
+# 下载 docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/Gray-Chan-sh/fulltext-search/main/docker-compose.yml -o docker-compose.yml
+
+# 准备资料目录
+mkdir -p ./data/docs
+# 把文档放入 ./data/docs/
+
+# 构建并启动
+docker compose up --build -d
+```
+
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `PORT` | `8080` | 宿主机映射端口 |
+| `DATA_DIR` | `./data/docs` | 资料目录路径 |
+| `OCR_LANG` | `ch` | OCR 语言（ch/en/japan/korean） |
+| `OCR_CONCURRENT` | `2` | OCR 并发数，内存不足时自动降级 |
+| `SCHEDULED_SCAN_TIME` | `00:00` | 每日定时扫描时间 |
+
+### 跨架构构建（Mac 构建 → NAS 部署）
+
+```bash
+# Mac M 芯片上构建 amd64 镜像
+docker buildx build --platform linux/amd64 -t fulltext-search .
+
+# 保存镜像
+docker save fulltext-search | gzip > fulltext-search.tar.gz
+# 或直接 push 到私有 registry
+docker tag fulltext-search registry.example.com/fulltext-search:latest
+docker push registry.example.com/fulltext-search:latest
+```
+
+### 使用 Docker Hub 镜像站
+
+如果无法直接访问 Docker Hub，构建时指定镜像站：
+
+```bash
+docker compose build --build-arg REGISTRY=mirror.example.com/library/
+```
 
 ### 基本用法
 
