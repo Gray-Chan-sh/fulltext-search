@@ -1,3 +1,5 @@
+[🇺🇸 English](README.md)
+
 # FullText Search
 
 Docker 部署的全文搜索服务，支持 OCR，适合在 NAS 上索引和管理文档。

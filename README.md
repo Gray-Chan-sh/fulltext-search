@@ -1,3 +1,5 @@
+[🇨🇳 中文](README_ZH.md)
+
 # FullText Search
 
 A Docker-deployed full-text search service with OCR support, designed for indexing and managing documents on NAS.
