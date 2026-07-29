@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Search, FolderOpen, FileText, Settings as SettingsIcon, LogOut, Loader2 } from 'lucide-react'
 import { ToastProvider } from './components/Toast'
 import { AuthProvider, useAuth } from './components/Auth'
+import LanguageSelect from './pages/LanguageSelect'
 import LoginPage from './pages/LoginPage'
 import SearchPage from './pages/SearchPage'
 import DirManager from './pages/DirManager'
@@ -19,6 +20,7 @@ const tabs: { id: Tab; label: string; icon: typeof Search }[] = [
 
 function AppContent() {
   const { token, ready, logout } = useAuth()
+  const [lang, setLang] = useState<'zh' | 'en' | null>(() => localStorage.getItem('lang') as 'zh' | 'en' | null)
   const [activeTab, setActiveTab] = useState<Tab>('search')
   const [scanStatus, setScanStatus] = useState('')
   const [nextScan, setNextScan] = useState('')
@@ -45,6 +47,10 @@ function AppContent() {
     const interval = setInterval(poll, 5000)
     return () => clearInterval(interval)
   }, [token])
+
+  if (!lang) {
+    return <LanguageSelect onSelect={l => { localStorage.setItem('lang', l); setLang(l) }} />
+  }
 
   if (!ready) {
     return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
