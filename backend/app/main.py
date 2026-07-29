@@ -22,15 +22,24 @@ def _clean_stale_locks():
                 pass
 
 
-def _preload_ocr():
-    """Preload PaddleOCR model at startup (avoids GIL lock during scan)."""
-    try:
-        import warnings
+async def _preload_ocr():
+    """Preload PaddleOCR model in background thread. Non-blocking."""
+    import warnings
+    import asyncio
+
+    def _load():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            from app.extractor.ocr import _get_paddleocr
-            _get_paddleocr()
-            logger.info("PaddleOCR model loaded")
+            from app.extractor.ocr import _check_paddle
+            if _check_paddle():
+                from app.extractor.ocr import _get_paddleocr
+                _get_paddleocr()
+                logger.info("PaddleOCR model loaded")
+            else:
+                logger.info("PaddleOCR not available, will use Tesseract")
+
+    try:
+        await asyncio.to_thread(_load)
     except Exception as e:
         logger.warning("PaddleOCR preload failed: %s", e)
 
@@ -60,7 +69,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.index_dir, exist_ok=True)
     os.makedirs(settings.data_dir, exist_ok=True)
     _clean_stale_locks()
-    _preload_ocr()
+    await _preload_ocr()
 
     from app.service.tracker import init_db
     init_db()
@@ -138,13 +147,21 @@ app.include_router(files_route.router)
 
 
 # Static files for built frontend
-static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "static")
-static_abs = os.path.abspath(static_dir)
-if os.path.isdir(static_abs):
-    app.mount("/", StaticFiles(directory=static_abs, html=True), name="static")
-
-
 @app.get("/api/health")
 async def health():
     from app.service.scanner import scan_state
     return {"status": "ok", "scanner": scan_state.get("status", "idle")}
+
+
+static_abs = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
+if os.path.isdir(static_abs):
+    from fastapi.responses import FileResponse
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        file_path = os.path.join(static_abs, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index = os.path.join(static_abs, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
+        return FileResponse(index) if os.path.isfile(index) else None

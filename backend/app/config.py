@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     ocr_concurrent: int = 2
     ocr_fallback_tesseract: bool = True
     ocr_dpi: int = 100
-    ocr_engine: str = "onnxruntime"
+    ocr_engine: str = "paddle"
 
     # Scanner
     scheduled_scan_time: str = "00:00"
